@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, Query, Header, status, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi import Request
 from sqlalchemy.orm import Session
 from sqlalchemy import select, delete
 from datetime import datetime, timezone, timedelta
@@ -24,7 +25,7 @@ app = FastAPI(title="Clinic Booking API", version="1.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173", "http://localhost:5174", "http://127.0.0.1:5173", "http://127.0.0.1:5174"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -38,7 +39,14 @@ RATE_LIMIT = 5          # max attempts
 RATE_WINDOW = 60        # seconds
 
 
-async def verify_api_key(x_api_key: Optional[str] = Header(None)):
+async def verify_api_key(
+    request: Request,
+    x_api_key: Optional[str] = Header(None)
+):
+    # Allow CORS preflight requests to pass
+    if request.method == "OPTIONS":
+        return None
+
     if not x_api_key or x_api_key != settings.api_key:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
